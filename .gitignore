@@ -1,0 +1,27 @@
+# KostHub — gabungan API + Web.
+# (Aturan detail sudah ada di kosthub-api/.gitignore & kosthub-web/.gitignore)
+
+# Secrets / environment
+.env
+.env.*
+!.env.example
+
+# Dependencies & build output
+node_modules/
+vendor/
+dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Laravel storage & cache
+kosthub-api/storage/*.key
+kosthub-api/storage/framework/cache/
+kosthub-api/storage/framework/sessions/
+kosthub-api/storage/framework/views/
+kosthub-api/storage/logs/
+kosthub-api/bootstrap/cache/
+.phpunit.cache/
