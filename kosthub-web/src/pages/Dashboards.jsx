@@ -204,9 +204,22 @@ export function UserDashboard() {
     if (sort && sort !== 'terbaru') params.sort = sort;
     // Bila user pilih "terdekat" tapi lokasi belum aktif, tetap kirim agar backend tahu
     if (sort === 'terdekat' && !coords) params.sort = 'terdekat';
+    // Ambil SEMUA halaman agar filter, urutan, dan hitungan akurat
+    const fetchAllPages = async (url, p) => {
+      const all = [];
+      let page = 1;
+      for (;;) {
+        const r = await api.get(url, { params: { ...p, page, per_page: 100 } });
+        all.push(...(r.data.data || []));
+        if (!r.data.last_page || page >= r.data.last_page) break;
+        page += 1;
+        if (page > 20) break; // pengaman
+      }
+      return all;
+    };
     Promise.all([
-      api.get('/kosts', { params }).then((r) => r.data.data || []).catch(() => []),
-      api.get('/rooms', { params: { status: 'kosong' } }).then((r) => r.data.data || []).catch(() => []),
+      fetchAllPages('/kosts', params).catch(() => []),
+      fetchAllPages('/rooms', { status: 'kosong' }).catch(() => []),
       api.get('/dashboard-user').then((r) => r.data.contract || null).catch(() => null),
     ])
       .then(([k, rm, c]) => { setKosts(k); setRooms(rm); setContract(c); })

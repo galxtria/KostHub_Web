@@ -57,7 +57,12 @@ class KostController extends Controller
             }
         }
 
-        return $q->paginate(10);
+        return $q->paginate($this->perPage($request, 10));
+    }
+
+    private function perPage(Request $request, int $default): int
+    {
+        return min(max((int) $request->get('per_page', $default), 1), 100);
     }
 
     public function store(Request $request)

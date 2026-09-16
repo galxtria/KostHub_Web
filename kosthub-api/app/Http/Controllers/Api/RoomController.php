@@ -14,7 +14,7 @@ class RoomController extends Controller
         return Room::with(['kost:id,nama,foto_url', 'activeContract.user:id,name'])
             ->when($request->kost_id, fn($q) => $q->where('kost_id', $request->kost_id))
             ->when($request->status, fn($q) => $q->where('status', $request->status))
-            ->latest()->paginate(12);
+            ->latest()->paginate(min(max((int) $request->get('per_page', 12), 1), 100));
     }
 
     public function show(Room $room)
