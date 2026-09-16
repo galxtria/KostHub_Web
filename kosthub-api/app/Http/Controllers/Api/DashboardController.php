@@ -34,6 +34,25 @@ class DashboardController extends Controller
         $user = $request->user();
         $contract = $user->contracts()->with('room.kost')->where('status','aktif')->first();
 
+        // Pengingat kontrak segera berakhir (≤7 hari), dibuat sekali per kontrak
+        if ($contract && $contract->tgl_keluar) {
+            $sisaHari = now()->startOfDay()->diffInDays(now()->parse($contract->tgl_keluar)->startOfDay(), false);
+            if ($sisaHari >= 0 && $sisaHari <= 7) {
+                $sudahAda = $user->notifications()->unread()
+                    ->where('tipe', 'kontrak_berakhir')
+                    ->where('pesan', 'like', '%kontrak#'.$contract->id.'%')
+                    ->exists();
+                if (! $sudahAda) {
+                    $user->notifications()->create([
+                        'tipe' => 'kontrak_berakhir',
+                        'judul' => $sisaHari === 0 ? 'Kontrak berakhir hari ini' : "Kontrak berakhir dalam $sisaHari hari",
+                        'pesan' => "kontrak#{$contract->id} • Kamar {$contract->room->nomor_kamar} berakhir {$contract->tgl_keluar}. Hubungi pemilik untuk perpanjangan.",
+                        'link' => '/pesanan',
+                    ]);
+                }
+            }
+        }
+
         return response()->json([
             'contract' => $contract,
             'tagihan_aktif' => Invoice::with('room')

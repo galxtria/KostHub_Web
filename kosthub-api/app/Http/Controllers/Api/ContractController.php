@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\Room;
+use App\Support\Notif;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -93,10 +94,18 @@ class ContractController extends Controller
             'status' => 'belum_bayar',
         ]);
 
+        Notif::toAdmins(
+            'booking_baru',
+            'Booking kamar baru',
+            $request->user()->name.' memesan kamar '.$room->nomor_kamar.' ('.($room->kost->nama ?? 'kost').')',
+            '/admin/penghuni'
+        );
+
         return response()->json([
             'contract' => $contract->load(['room.kost']),
             'invoice' => $invoice->load(['room.kost']),
         ], 201);
+
     }
 
     // Riwayat + pesanan aktif milik user yang login

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\KostController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\UserController;
@@ -42,6 +43,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings', [ContractController::class, 'book']);
     Route::get('/my/contracts', [ContractController::class, 'mine']);
     Route::post('/contracts/{contract}/cancel', [ContractController::class, 'cancel']);
+
+    // Notifikasi dalam aplikasi
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
 
     // Pengumuman aktif + keluhan milik sendiri
     Route::get('/announcements', [AnnouncementController::class, 'index']);

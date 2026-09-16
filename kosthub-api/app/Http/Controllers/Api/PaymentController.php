@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Support\Notif;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
@@ -47,6 +48,13 @@ class PaymentController extends Controller
 
         $invoice->update(['status' => 'menunggu_verifikasi']);
 
+        Notif::toAdmins(
+            'pembayaran_masuk',
+            'Pembayaran perlu verifikasi',
+            ($invoice->user->name ?? 'Penghuni').' mengirim bukti bayar '.$invoice->kode_invoice,
+            '/admin/tagihan'
+        );
+
         return response()->json($payment, 201);
     }
 
@@ -68,6 +76,15 @@ class PaymentController extends Controller
         $payment->invoice->update([
             'status' => $data['aksi'] === 'verified' ? 'lunas' : 'belum_bayar',
         ]);
+
+        $isOk = $data['aksi'] === 'verified';
+        Notif::send(
+            $payment->invoice->user_id,
+            $isOk ? 'pembayaran_terverifikasi' : 'pembayaran_ditolak',
+            $isOk ? 'Pembayaran terverifikasi' : 'Pembayaran ditolak',
+            $payment->invoice->kode_invoice.($isOk ? ' sudah lunas. Terima kasih!' : ' dikembalikan ke belum bayar. Periksa catatan admin.'),
+            '/tagihan'
+        );
 
         return $payment->load('invoice');
     }

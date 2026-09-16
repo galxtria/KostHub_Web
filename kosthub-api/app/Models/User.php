@@ -29,5 +29,6 @@ class User extends Authenticatable
     public function contracts() { return $this->hasMany(Contract::class); }
     public function activeContract() { return $this->hasOne(Contract::class)->where('status','aktif')->latestOfMany(); }
     public function invoices() { return $this->hasMany(Invoice::class); }
+    public function notifications() { return $this->hasMany(Notification::class); }
     public function isAdmin(): bool { return $this->role === 'admin'; }
 }

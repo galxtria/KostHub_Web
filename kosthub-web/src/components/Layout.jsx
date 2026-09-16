@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { imgSrc } from '../api/axios';
+import NotificationBell from './ui/NotificationBell';
 import {
   Home as HomeIcon,
   ClipboardList as OrdersIcon,
   User as UserIcon,
-  Bell as BellIcon,
   Building2 as Building2Icon,
   LayoutDashboard as DashboardIcon,
   BedDouble as BedIcon,
@@ -115,10 +115,7 @@ function TopNavbar({ subtitle, links = [] }) {
         <div className="flex-1" />
 
         <div className="flex items-center gap-3 shrink-0">
-          <button className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-500">
-            <BellIcon className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
-          </button>
+          <NotificationBell />
           <div className="flex items-center gap-2.5 pl-3 border-l border-slate-100">
             <Avatar user={user} />
             <div className="hidden lg:block">
@@ -161,10 +158,7 @@ function MobileGreeting({ title, subtitle }) {
             {subtitle && <p className="text-[11px] text-slate-400">{subtitle}</p>}
           </div>
         </div>
-        <button className="relative w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-soft border border-slate-100">
-          <BellIcon className="w-5 h-5 text-kost-700" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full"></span>
-        </button>
+        <NotificationBell variant="mobile" />
       </div>
     </header>
   );

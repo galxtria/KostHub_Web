@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Complaint;
+use App\Support\Notif;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -49,7 +50,16 @@ class ComplaintController extends Controller
         $data['user_id'] = $request->user()->id;
         $data['status'] = 'baru';
 
-        return response()->json(Complaint::create($data), 201);
+        $complaint = Complaint::create($data);
+
+        Notif::toAdmins(
+            'komplain_baru',
+            'Keluhan baru: '.$complaint->judul,
+            $request->user()->name.' melaporkan ('.$complaint->kategori.')',
+            '/admin/layanan'
+        );
+
+        return response()->json($complaint, 201);
     }
 
     // Admin: ubah status
@@ -59,6 +69,15 @@ class ComplaintController extends Controller
             'status' => 'required|in:'.implode(',', self::STATUS),
         ]);
         $complaint->update($data);
+
+        Notif::send(
+            $complaint->user_id,
+            'komplain_status',
+            'Laporan "'.$complaint->judul.'" : '.$data['status'],
+            'Pemilik memperbarui status laporan Anda menjadi '.$data['status'],
+            '/komplain'
+        );
+
         return $complaint->load(['user:id,name', 'room:id,nomor_kamar,kost_id', 'room.kost:id,nama']);
     }
 

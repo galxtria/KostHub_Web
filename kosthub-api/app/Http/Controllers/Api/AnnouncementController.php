@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
+use App\Support\Notif;
 use Illuminate\Http\Request;
 
 class AnnouncementController extends Controller
@@ -34,7 +35,16 @@ class AnnouncementController extends Controller
             'isi' => 'required|string|max:2000',
             'berlaku_sampai' => 'nullable|date|after_or_equal:today',
         ]);
-        return response()->json(Announcement::create($data), 201);
+        $announcement = Announcement::create($data);
+
+        Notif::toPenghuni(
+            'pengumuman_baru',
+            'Pengumuman: '.$announcement->judul,
+            mb_substr($announcement->isi, 0, 120),
+            '/dashboard'
+        );
+
+        return response()->json($announcement, 201);
     }
 
     public function update(Request $request, Announcement $announcement)

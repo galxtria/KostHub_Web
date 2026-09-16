@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\Invoice;
+use App\Support\Notif;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -54,6 +55,14 @@ class InvoiceController extends Controller
             'status' => 'belum_bayar',
         ]);
 
+        Notif::send(
+            $invoice->user_id,
+            'tagihan_baru',
+            'Tagihan baru '.$invoice->kode_invoice,
+            'Sejumlah Rp '.number_format($invoice->jumlah, 0, ',', '.').', jatuh tempo '.$invoice->jatuh_tempo,
+            '/tagihan'
+        );
+
         return response()->json($invoice, 201);
     }
 
@@ -80,6 +89,13 @@ class InvoiceController extends Controller
                 'jatuh_tempo' => $request->jatuh_tempo,
                 'status' => 'belum_bayar',
             ]);
+            Notif::send(
+                $c->user_id,
+                'tagihan_baru',
+                'Tagihan sewa periode baru',
+                'Tagihan sewa telah terbit, jatuh tempo '.$request->jatuh_tempo,
+                '/tagihan'
+            );
             $count++;
         }
 
