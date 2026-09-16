@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\KostController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\UserController;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [PasswordResetController::class, 'forgot']);
+Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', fn(Request $r) => $r->user());
@@ -71,6 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('/rooms', RoomController::class)->except(['index', 'show']);
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/{user}', [UserController::class, 'show']);
+        Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword']);
         Route::get('/contracts', [ContractController::class, 'index']);
         Route::get('/contracts/{contract}', [ContractController::class, 'show']);
         Route::post('/contracts', [ContractController::class, 'store']);

@@ -30,4 +30,15 @@ class UserController extends Controller
             'contracts.invoices' => fn($q) => $q->latest(),
         ]);
     }
+
+    // Admin: reset password penghuni (mis. penghuni lupa & tidak bisa akses email)
+    public function resetPassword(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+        $user->password = $data['password']; // otomatis di-hash via cast
+        $user->save();
+        return response()->json(['message' => 'Password '.$user->name.' berhasil diganti']);
+    }
 }

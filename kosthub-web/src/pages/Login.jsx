@@ -114,6 +114,11 @@ export default function Login() {
             Daftar
           </Link>
         </p>
+        <p className="text-center text-sm text-slate-400 -mt-4">
+          <Link to="/forgot-password" className="font-medium hover:underline hover:text-kost-700">
+            Lupa password?
+          </Link>
+        </p>
       </div>
     </div>
   );

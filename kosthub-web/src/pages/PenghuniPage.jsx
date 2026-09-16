@@ -57,6 +57,10 @@ export default function PenghuniPage() {
   const [detailUser, setDetailUser] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
+  // Reset password penghuni oleh admin
+  const [newPw, setNewPw] = useState({ password: '', confirmation: '' });
+  const [savingPw, setSavingPw] = useState(false);
+
   // Konfirmasi
   const [finishTarget, setFinishTarget] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
@@ -582,6 +586,48 @@ export default function PenghuniPage() {
                     <p className="text-sm text-slate-400 text-center py-4">Belum pernah memiliki kontrak.</p>
                   )}
                 </div>
+                <form
+                  className="mt-4 rounded-xl border border-slate-100 bg-[#F7F8FA] p-4"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (newPw.password !== newPw.confirmation) {
+                      toast.error('Konfirmasi password tidak cocok');
+                      return;
+                    }
+                    setSavingPw(true);
+                    try {
+                      const r = await api.post(`/users/${detailUser.id}/reset-password`, {
+                        password: newPw.password,
+                        password_confirmation: newPw.confirmation,
+                      });
+                      toast.success(r.data.message || 'Password diganti');
+                      setNewPw({ password: '', confirmation: '' });
+                    } catch (err) {
+                      toast.error(err.response?.data?.message || 'Gagal mengganti password');
+                    } finally {
+                      setSavingPw(false);
+                    }
+                  }}
+                >
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    Reset Password Penghuni
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <input
+                      className="input" type="password" placeholder="Password baru (min 6)"
+                      value={newPw.password} onChange={(e) => setNewPw({ ...newPw, password: e.target.value })}
+                      required autoComplete="new-password"
+                    />
+                    <input
+                      className="input" type="password" placeholder="Ulangi password baru"
+                      value={newPw.confirmation} onChange={(e) => setNewPw({ ...newPw, confirmation: e.target.value })}
+                      required autoComplete="new-password"
+                    />
+                  </div>
+                  <button type="submit" className="btn-secondary w-full mt-2.5 text-xs" disabled={savingPw}>
+                    {savingPw ? <><span className="spinner" /> Menyimpan...</> : 'Ganti Password Penghuni Ini'}
+                  </button>
+                </form>
                 <button onClick={() => setDetailUser(null)} className="btn-secondary w-full mt-5">
                   Tutup <ChevronRight className="w-4 h-4 rotate-90" />
                 </button>
