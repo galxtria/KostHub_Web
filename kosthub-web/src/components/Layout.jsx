@@ -14,6 +14,7 @@ import {
   Wallet as WalletIcon,
   Users as UsersIcon,
   LogOut as LogOutIcon,
+  Headset as HeadsetIcon,
 } from 'lucide-react';
 
 export const USER_NAV_LINKS = [
@@ -185,6 +186,7 @@ export function AdminLayout({ children }) {
     { path: '/admin/tagihan', label: 'Tagihan', Icon: ReceiptIcon },
     { path: '/admin/laporan', label: 'Laporan', Icon: WalletIcon },
     { path: '/admin/penghuni', label: 'Penghuni', Icon: UsersIcon },
+    { path: '/admin/layanan', label: 'Layanan', Icon: HeadsetIcon },
   ];
 
   const mobileLinks = links.slice(0, 5);

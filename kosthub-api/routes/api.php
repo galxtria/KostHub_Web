@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AnnouncementController;
+use App\Http\Controllers\Api\ComplaintController;
 use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ExpenseController;
@@ -41,6 +43,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my/contracts', [ContractController::class, 'mine']);
     Route::post('/contracts/{contract}/cancel', [ContractController::class, 'cancel']);
 
+    // Pengumuman aktif + keluhan milik sendiri
+    Route::get('/announcements', [AnnouncementController::class, 'index']);
+    Route::get('/my/complaints', [ComplaintController::class, 'mine']);
+    Route::post('/complaints', [ComplaintController::class, 'store']);
+
     // Ulasan kost oleh penghuni (baca: semua role login; tulis/hapus: pemilik ulasan)
     Route::get('/kosts/{kost}/reviews', [ReviewController::class, 'index']);
     Route::post('/kosts/{kost}/reviews', [ReviewController::class, 'store']);
@@ -70,5 +77,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy']);
         Route::get('/reports/keuangan', [ReportController::class, 'keuangan']);
         Route::get('/reports/keuangan-csv', [ReportController::class, 'keuanganCsv']);
+
+        // Kelola keluhan + pengumuman
+        Route::get('/complaints', [ComplaintController::class, 'index']);
+        Route::patch('/complaints/{complaint}', [ComplaintController::class, 'updateStatus']);
+        Route::delete('/complaints/{complaint}', [ComplaintController::class, 'destroy']);
+        Route::get('/announcements/all', [AnnouncementController::class, 'adminIndex']);
+        Route::post('/announcements', [AnnouncementController::class, 'store']);
+        Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
+        Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
     });
 });

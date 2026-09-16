@@ -26,6 +26,7 @@ import {
   LocateFixed,
   SlidersHorizontal,
   RotateCcw,
+  Megaphone,
 } from 'lucide-react';
 
 /* ========== Admin Dashboard ========== */
@@ -161,6 +162,7 @@ export function UserDashboard() {
   const [kosts, setKosts] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [contract, setContract] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -221,8 +223,9 @@ export function UserDashboard() {
       fetchAllPages('/kosts', params).catch(() => []),
       fetchAllPages('/rooms', { status: 'kosong' }).catch(() => []),
       api.get('/dashboard-user').then((r) => r.data.contract || null).catch(() => null),
+      api.get('/announcements').then((r) => (r.data.data || []).slice(0, 3)).catch(() => []),
     ])
-      .then(([k, rm, c]) => { setKosts(k); setRooms(rm); setContract(c); })
+      .then(([k, rm, c, a]) => { setKosts(k); setRooms(rm); setContract(c); setAnnouncements(a); })
       .finally(() => setLoading(false));
   }, [debouncedQuery, coords, debouncedMin, debouncedMax, kota, hanyaTersedia, sort]);
 
@@ -349,6 +352,26 @@ export function UserDashboard() {
           </div>
           <ChevronRight className="w-5 h-5 text-kost-600 shrink-0" />
         </button>
+      )}
+
+      {/* ===== Pengumuman pemilik ===== */}
+      {announcements.length > 0 && (
+        <section className="space-y-2.5">
+          {announcements.map((a) => (
+            <div key={a.id} className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex gap-3 animate-fade-in">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                <Megaphone className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600">
+                  {a.kost?.nama || 'Pengumuman'}
+                </p>
+                <p className="text-sm font-bold text-slate-800 leading-snug">{a.judul}</p>
+                <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 mt-0.5">{a.isi}</p>
+              </div>
+            </div>
+          ))}
+        </section>
       )}
 
       {/* ===== Search + Lokasi ===== */}
