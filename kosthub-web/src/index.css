@@ -451,8 +451,7 @@
 }
 
 @layer utilities {
-  .text-gradient {
-    @apply bg-clip-text text-transparent
+  .text-gradient {    @apply bg-clip-text text-transparent
            bg-gradient-to-r from-kost-700 to-kost-500;
   }
 
@@ -463,5 +462,15 @@
 
   .border-glass {
     @apply border border-slate-100;
+  }
+}
+
+/* ===== Cetak kwitansi: sembunyikan tombol navigasi saat print ===== */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
   }
 }

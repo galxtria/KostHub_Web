@@ -94,7 +94,7 @@ class KostController extends Controller
 
     public function show(Kost $kost)
     {
-        return $kost->load(['rooms.activeContract.user'])->loadAvg('reviews', 'rating')->loadCount('reviews');
+        return $kost->load(['rooms.activeContract.user', 'owner:id,name,phone'])->loadAvg('reviews', 'rating')->loadCount('reviews');
     }
 
     public function update(Request $request, Kost $kost)

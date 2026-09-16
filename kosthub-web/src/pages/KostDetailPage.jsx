@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, Star, BedDouble, DoorOpen, Check,
-  CalendarDays, ChevronRight, ScrollText, ExternalLink, Navigation, Trash2, MessageSquareText,
+  CalendarDays, ChevronRight, ScrollText, ExternalLink, Navigation, Trash2, MessageSquareText, Phone, Heart,
 } from 'lucide-react';
 import api, { formatRupiah, imgSrc, priceShort } from '../api/axios';
 import { useToast } from '../components/ui/Toast';
@@ -21,6 +21,7 @@ export default function KostDetailPage() {
   const [tglMasuk, setTglMasuk] = useState(() => new Date().toISOString().slice(0, 10));
   const [durasi, setDurasi] = useState(1);
   const [booking, setBooking] = useState(false);
+  const [isFav, setIsFav] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -28,7 +29,23 @@ export default function KostDetailPage() {
       .then((r) => setKost(r.data))
       .catch(() => toast.error('Gagal memuat detail kost'))
       .finally(() => setLoading(false));
+    api.get('/favorites')
+      .then((r) => setIsFav((r.data.data || []).some((f) => String(f.kost_id) === String(id))))
+      .catch(() => {});
   }, [id]);
+
+  const toggleFav = async () => {
+    const prev = isFav;
+    setIsFav(!prev);
+    try {
+      const r = await api.post('/favorites/toggle', { kost_id: Number(id) });
+      setIsFav(r.data.favorited);
+      toast.success(r.data.favorited ? 'Disimpan ke favorit' : 'Dihapus dari favorit');
+    } catch {
+      setIsFav(prev);
+      toast.error('Gagal memperbarui favorit');
+    }
+  };
 
   const submitBooking = async (e) => {
     e.preventDefault();
@@ -105,6 +122,13 @@ export default function KostDetailPage() {
       <div className="kost-card cursor-default">
         <div className="relative aspect-[16/9] md:aspect-[21/9] overflow-hidden bg-slate-100">
           <img src={imgSrc(kost.foto_url)} alt={kost.nama} className="w-full h-full object-cover" />
+          <button
+            onClick={toggleFav}
+            className="absolute top-3 left-3 w-9 h-9 rounded-xl bg-white/90 backdrop-blur flex items-center justify-center shadow-soft hover:bg-white transition-colors"
+            title={isFav ? 'Hapus dari favorit' : 'Simpan ke favorit'}
+          >
+            <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
+          </button>
           <div className="absolute top-3 right-3 flex gap-2">
             {ratingAvg ? (
               <span className="badge-rating" title={`${reviewCount} ulasan`}>
@@ -146,6 +170,18 @@ export default function KostDetailPage() {
               <DoorOpen className="w-4 h-4 text-kost-600" />
               <b>{kosongCount}</b> <span className="text-slate-400 text-xs">kosong</span>
             </span>
+            {kost.owner?.phone && (
+              <>
+                <a
+                  href={`https://wa.me/${String(kost.owner.phone).replace(/^0/, '62').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Halo ${kost.owner.name || 'kak'}, saya tertarik dengan ${kost.nama}. Apakah masih tersedia?`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ml-auto inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-xl transition-colors"
+                >
+                  <Phone className="w-3.5 h-3.5" /> Hubungi Pemilik
+                </a>
+              </>
+            )}
           </div>
 
           {fasilitas.length > 0 && (

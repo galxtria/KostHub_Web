@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import QRCode from 'react-qr-code';
 import {
   ArrowLeft, QrCode, Landmark, Wallet, CheckCircle2, XCircle,
-  Copy, RefreshCw, ReceiptText, ShieldCheck, UploadCloud, Timer,
+  Copy, RefreshCw, ReceiptText, ShieldCheck, UploadCloud, Timer, Printer,
 } from 'lucide-react';
 import api, { formatRupiah } from '../api/axios';
 import { useToast } from '../components/ui/Toast';
@@ -199,8 +199,11 @@ export default function CheckoutPage() {
           <p className="text-sm text-slate-400 mt-1 mb-6">
             {invoice.kode_invoice} sudah lunas via {METHOD_LABEL[payment?.metode] || 'gateway'}.
           </p>
-          <div className="flex gap-3 justify-center">
+          <div className="flex gap-3 justify-center flex-wrap">
             <Link to="/tagihan" className="btn-primary">Lihat Tagihan Saya</Link>
+            <Link to={`/invoice/${invoice.id}/cetak`} target="_blank" className="btn-secondary">
+              <Printer className="w-4 h-4" /> Cetak Kwitansi
+            </Link>
             <Link to="/dashboard" className="btn-secondary">Cari Kost Lain</Link>
           </div>
         </div>

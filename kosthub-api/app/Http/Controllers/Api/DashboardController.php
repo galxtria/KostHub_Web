@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
+use App\Models\Kost;
 use App\Models\Payment;
 use App\Models\Room;
 use Illuminate\Http\Request;
@@ -16,6 +17,29 @@ class DashboardController extends Controller
             ->whereMonth('verified_at', now()->month)
             ->sum('jumlah_bayar');
 
+        // Pemasukan per bulan tahun berjalan (untuk grafik)
+        $perBulan = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $perBulan[] = [
+                'bulan' => $m,
+                'total' => (float) Payment::where('status_verifikasi','verified')
+                    ->whereYear('verified_at', now()->year)
+                    ->whereMonth('verified_at', $m)
+                    ->sum('jumlah_bayar'),
+            ];
+        }
+
+        // Okupansi per kost
+        $okupansi = Kost::withCount(['rooms', 'rooms as rooms_terisi_count' => fn($q) => $q->where('status','terisi')])
+            ->orderBy('nama')
+            ->get(['id', 'nama'])
+            ->map(fn($k) => [
+                'id' => $k->id,
+                'nama' => $k->nama,
+                'total' => $k->rooms_count,
+                'terisi' => $k->rooms_terisi_count,
+            ]);
+
         return response()->json([
             'pemasukan_bulan_ini' => (float) $pemasukanBulanIni,
             'total_kamar' => Room::count(),
@@ -26,6 +50,8 @@ class DashboardController extends Controller
             'perlu_verifikasi' => Payment::where('status_verifikasi','pending')->count(),
             'pembayaran_terbaru' => Payment::with(['invoice.user:id,name','invoice.room:id,nomor_kamar'])
                 ->latest()->limit(5)->get(),
+            'pemasukan_per_bulan' => $perBulan,
+            'okupansi_per_kost' => $okupansi,
         ]);
     }
 

@@ -14,6 +14,8 @@ import PesananPage from './pages/PesananPage';
 import ProfilPage from './pages/ProfilPage';
 import PenghuniPage from './pages/PenghuniPage';
 import KomplainPage from './pages/KomplainPage';
+import FavoritPage from './pages/FavoritPage';
+import InvoiceCetakPage from './pages/InvoiceCetakPage';
 import LayananPage from './pages/LayananPage';
 import { AdminLayout, UserLayout } from './components/Layout';
 import { useAuthStore } from './store/useAuthStore';
@@ -52,7 +54,10 @@ export default function App() {
         <Route path="/pesanan" element={<Protected role="penghuni"><UserLayout><PesananPage /></UserLayout></Protected>} />
         <Route path="/profil" element={<Protected role="penghuni"><UserLayout><ProfilPage /></UserLayout></Protected>} />
         <Route path="/komplain" element={<Protected role="penghuni"><UserLayout><KomplainPage /></UserLayout></Protected>} />
+        <Route path="/favorit" element={<Protected role="penghuni"><UserLayout><FavoritPage /></UserLayout></Protected>} />
         <Route path="/tagihan" element={<Protected role="penghuni"><UserLayout><TagihanPage /></UserLayout></Protected>} />
+        {/* Kwitansi cetak — semua role yang login (kepemilikan dicek API) */}
+        <Route path="/invoice/:id/cetak" element={<Protected><InvoiceCetakPage /></Protected>} />
 
         {/* Fallback */}
         <Route path="/" element={<Navigate to="/login" replace />} />

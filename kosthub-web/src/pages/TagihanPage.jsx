@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ReceiptText, CreditCard, BadgeCheck, Upload, ShieldCheck, Zap } from 'lucide-react';
+import { ReceiptText, CreditCard, BadgeCheck, Upload, ShieldCheck, Zap, Printer } from 'lucide-react';
 import api, { formatRupiah } from '../api/axios';
 import { StatusBadge } from '../components/Layout';
 import { useToast } from '../components/ui/Toast';
@@ -188,7 +188,16 @@ export default function TagihanPage({ isAdmin = false }) {
                         </button>
                       )}
                       {inv.status === 'lunas' && (
-                        <span className="text-xs text-emerald-600 font-semibold">✓ Lunas</span>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="text-xs text-emerald-600 font-semibold">✓ Lunas</span>
+                          <button
+                            onClick={() => window.open(`/invoice/${inv.id}/cetak`, '_blank')}
+                            className="btn-ghost !px-2 text-kost-700 font-semibold text-xs"
+                            title="Cetak kwitansi"
+                          >
+                            <Printer className="w-3.5 h-3.5" /> Kwitansi
+                          </button>
+                        </span>
                       )}
                     </td>
                   </tr>

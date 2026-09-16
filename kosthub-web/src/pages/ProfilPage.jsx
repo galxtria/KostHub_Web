@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   User as UserIcon, LogOut, ClipboardList, ReceiptText, Search,
   BedDouble, Wallet, ChevronRight, Phone, Mail, CalendarDays,
-  Pencil, ShieldCheck, Eye, EyeOff, Camera, Wrench,
+  Pencil, ShieldCheck, Eye, EyeOff, Camera, Wrench, Heart,
 } from 'lucide-react';
 import api, { formatRupiah, imgSrc } from '../api/axios';
 import { useAuthStore } from '../store/useAuthStore';
@@ -115,6 +115,7 @@ export default function ProfilPage() {
     { path: '/pesanan', label: 'Pesanan Saya', desc: 'Kelola & batalkan sewa kamar', Icon: ClipboardList },
     { path: '/tagihan', label: 'Tagihan Saya', desc: 'Bayar & riwayat pembayaran', Icon: ReceiptText },
     { path: '/komplain', label: 'Lapor Kerusakan', desc: 'Keluhan & tindak lanjut pemilik', Icon: Wrench },
+    { path: '/favorit', label: 'Favorit Saya', desc: 'Kost yang Anda simpan', Icon: Heart },
     { path: '/dashboard', label: 'Cari Kost', desc: 'Jelajahi properti tersedia', Icon: Search },
   ];
 

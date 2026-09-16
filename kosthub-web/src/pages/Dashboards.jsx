@@ -27,6 +27,7 @@ import {
   SlidersHorizontal,
   RotateCcw,
   Megaphone,
+  Heart,
 } from 'lucide-react';
 
 /* ========== Admin Dashboard ========== */
@@ -51,8 +52,7 @@ export function AdminDashboard() {
     );
   }
 
-  const kpis = [
-    {
+  const kpis = [    {
       label: 'Pemasukan Bulan Ini',
       value: formatRupiah(data.pemasukan_bulan_ini),
       Icon: Wallet,
@@ -113,6 +113,18 @@ export function AdminDashboard() {
       {/* Section: Pembayaran Terbaru */}
       <section>
         <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold font-heading text-slate-800">Grafik</h2>
+          <span className="text-xs font-semibold text-slate-400">Tahun {new Date().getFullYear()}</span>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <RevenueChart data={data.pemasukan_per_bulan || []} />
+          <OccupancyChart data={data.okupansi_per_kost || []} />
+        </div>
+      </section>
+
+      {/* Section: Pembayaran Terbaru */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold font-heading text-slate-800">Pembayaran Terbaru</h2>
           <span className="text-sm font-semibold text-kost-600 flex items-center gap-1">
             <ClipboardList className="w-4 h-4" />
@@ -163,6 +175,7 @@ export function UserDashboard() {
   const [rooms, setRooms] = useState([]);
   const [contract, setContract] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
+  const [favIds, setFavIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -224,8 +237,9 @@ export function UserDashboard() {
       fetchAllPages('/rooms', { status: 'kosong' }).catch(() => []),
       api.get('/dashboard-user').then((r) => r.data.contract || null).catch(() => null),
       api.get('/announcements').then((r) => (r.data.data || []).slice(0, 3)).catch(() => []),
+      api.get('/favorites').then((r) => (r.data.data || []).map((f) => f.kost_id)).catch(() => []),
     ])
-      .then(([k, rm, c, a]) => { setKosts(k); setRooms(rm); setContract(c); setAnnouncements(a); })
+      .then(([k, rm, c, a, f]) => { setKosts(k); setRooms(rm); setContract(c); setAnnouncements(a); setFavIds(f); })
       .finally(() => setLoading(false));
   }, [debouncedQuery, coords, debouncedMin, debouncedMax, kota, hanyaTersedia, sort]);
 
@@ -235,6 +249,24 @@ export function UserDashboard() {
   }, [debouncedQuery, debouncedMin, debouncedMax, kota, hanyaTersedia, sort]);
 
   const openKost = (id) => nav(`/kost/${id}`);
+
+  const toggleFav = async (kostId) => {
+    const wasFav = favIds.includes(kostId);
+    setFavIds((prev) => (wasFav ? prev.filter((x) => x !== kostId) : [...prev, kostId]));
+    try {
+      const r = await api.post('/favorites/toggle', { kost_id: kostId });
+      setFavIds((prev) => {
+        const nowFav = r.data.favorited;
+        if (nowFav && !prev.includes(kostId)) return [...prev, kostId];
+        if (!nowFav) return prev.filter((x) => x !== kostId);
+        return prev;
+      });
+      toast.success(r.data.favorited ? 'Disimpan ke favorit' : 'Dihapus dari favorit');
+    } catch {
+      setFavIds((prev) => (wasFav ? [...prev, kostId] : prev.filter((x) => x !== kostId)));
+      toast.error('Gagal memperbarui favorit');
+    }
+  };
 
   const requestLocation = () => {
     if (coords) { setCoords(null); return; }
@@ -536,13 +568,13 @@ export function UserDashboard() {
             {/* Mobile scroll */}
             <div className="md:hidden scroll-snap-x -mx-5 px-5">
               {visibleKosts.map((kost, idx) => (
-                <RecommendationCard key={kost.id} kost={kost} index={idx} onOpen={() => openKost(kost.id)} />
+                <RecommendationCard key={kost.id} kost={kost} index={idx} onOpen={() => openKost(kost.id)} isFav={favIds.includes(kost.id)} onToggleFav={toggleFav} />
               ))}
             </div>
             {/* Desktop grid */}
             <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               {visibleKosts.map((kost, idx) => (
-                <RecommendationCard key={kost.id} kost={kost} index={idx} onOpen={() => openKost(kost.id)} />
+                <RecommendationCard key={kost.id} kost={kost} index={idx} onOpen={() => openKost(kost.id)} isFav={favIds.includes(kost.id)} onToggleFav={toggleFav} />
               ))}
             </div>
             {/* Lihat selengkapnya / ciutkan */}
@@ -595,7 +627,7 @@ export function UserDashboard() {
 const FACILITY_ICONS = [Wifi, BedDouble, Bath, Snowflake, Shield, ParkingCircle, Tv, UtensilsCrossed];
 
 /* ===== Recommendation Card Component (data API asli, klik -> detail) ===== */
-function RecommendationCard({ kost, index, onOpen }) {
+export function RecommendationCard({ kost, index, onOpen, isFav = false, onToggleFav }) {
   const kosong = (kost.rooms_count || 0) - (kost.rooms_terisi_count || 0);
   const ratingAvg = kost.reviews_avg_rating != null ? Number(kost.reviews_avg_rating).toFixed(1) : null;
   const facilities = (kost.fasilitas && kost.fasilitas.length > 0
@@ -625,6 +657,16 @@ function RecommendationCard({ kost, index, onOpen }) {
           <div className="absolute bottom-3 left-3">
             <span className="badge-featured">{kosong} kamar tersedia</span>
           </div>
+        )}
+        {/* Favorit */}
+        {onToggleFav && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleFav(kost.id); }}
+            className="absolute top-3 left-3 w-8 h-8 rounded-lg bg-white/90 backdrop-blur flex items-center justify-center shadow-soft hover:bg-white transition-colors"
+            title={isFav ? 'Hapus dari favorit' : 'Simpan ke favorit'}
+          >
+            <Heart className={`w-4 h-4 transition-colors ${isFav ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
+          </button>
         )}
         {/* Rating badge (ulasan asli, sembunyikan bila belum ada) */}
         {ratingAvg && (
@@ -724,6 +766,74 @@ function NearbyCard({ room, index, onOpen }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ===== Grafik pemasukan per bulan (SVG murni) ===== */
+const BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+function RevenueChart({ data }) {
+  const max = Math.max(1, ...data.map((d) => Number(d.total) || 0));
+  const total = data.reduce((s, d) => s + (Number(d.total) || 0), 0);
+  return (
+    <div className="card lg:col-span-3">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="font-bold font-heading text-slate-800">Pemasukan per Bulan</h3>
+        <span className="text-xs font-bold text-kost-700">{priceShort(total)} / thn</span>
+      </div>
+      <p className="text-[11px] text-slate-400 mb-4">Pembayaran terverifikasi tahun berjalan</p>
+      <div className="flex items-end gap-1.5 h-40">
+        {data.map((d) => {
+          const v = Number(d.total) || 0;
+          const h = Math.max(4, Math.round((v / max) * 100));
+          const isNow = d.bulan === new Date().getMonth() + 1;
+          return (
+            <div key={d.bulan} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end" title={`${BULAN_PENDEK[d.bulan - 1]}: ${formatRupiah(v)}`}>
+              <div
+                className={`w-full rounded-lg transition-all ${isNow ? 'bg-kost-600' : 'bg-kost-200 hover:bg-kost-300'}`}
+                style={{ height: `${h}%` }}
+              />
+              <span className={`text-[10px] font-bold ${isNow ? 'text-kost-700' : 'text-slate-400'}`}>
+                {BULAN_PENDEK[d.bulan - 1]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ===== Okupansi per kost (progress bar) ===== */
+function OccupancyChart({ data }) {
+  return (
+    <div className="card lg:col-span-2">
+      <h3 className="font-bold font-heading text-slate-800 mb-1">Okupansi per Kost</h3>
+      <p className="text-[11px] text-slate-400 mb-4">Kamar terisi dari total</p>
+      {data.length === 0 ? (
+        <p className="text-xs text-slate-400 text-center py-6">Belum ada data kost.</p>
+      ) : (
+        <div className="space-y-3.5 max-h-56 overflow-y-auto pr-1">
+          {data.map((k) => {
+            const pct = k.total > 0 ? Math.round((k.terisi / k.total) * 100) : 0;
+            return (
+              <div key={k.id}>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <p className="text-xs font-bold text-slate-700 truncate">{k.nama}</p>
+                  <p className="text-[11px] font-semibold text-slate-400 shrink-0">{k.terisi}/{k.total}</p>
+                </div>
+                <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-kost-500' : 'bg-amber-400'}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
