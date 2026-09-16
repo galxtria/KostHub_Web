@@ -574,7 +574,7 @@ const FACILITY_ICONS = [Wifi, BedDouble, Bath, Snowflake, Shield, ParkingCircle,
 /* ===== Recommendation Card Component (data API asli, klik -> detail) ===== */
 function RecommendationCard({ kost, index, onOpen }) {
   const kosong = (kost.rooms_count || 0) - (kost.rooms_terisi_count || 0);
-  const rating = (4.5 + ((kost.id || 0) % 6) / 10).toFixed(1);
+  const ratingAvg = kost.reviews_avg_rating != null ? Number(kost.reviews_avg_rating).toFixed(1) : null;
   const facilities = (kost.fasilitas && kost.fasilitas.length > 0
     ? kost.fasilitas.slice(0, 3)
     : ['WiFi', 'Kasur Nyaman', 'KM Dalam']
@@ -603,13 +603,15 @@ function RecommendationCard({ kost, index, onOpen }) {
             <span className="badge-featured">{kosong} kamar tersedia</span>
           </div>
         )}
-        {/* Rating badge */}
-        <div className="absolute top-3 right-3">
-          <span className="badge-rating">
-            <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
-            {rating}
-          </span>
-        </div>
+        {/* Rating badge (ulasan asli, sembunyikan bila belum ada) */}
+        {ratingAvg && (
+          <div className="absolute top-3 right-3">
+            <span className="badge-rating">
+              <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+              {ratingAvg}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Content */}

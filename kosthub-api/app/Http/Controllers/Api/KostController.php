@@ -16,6 +16,8 @@ class KostController extends Controller
 
         $q = Kost::withCount(['rooms', 'rooms as rooms_terisi_count' => fn($qq) => $qq->where('status','terisi')])
             ->withMin('rooms', 'harga_bulanan')
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews')
             ->when($request->search, fn($qq) => $qq->where(fn($w) => $w
                 ->where('nama', 'like', '%'.$request->search.'%')
                 ->orWhere('alamat', 'like', '%'.$request->search.'%')
@@ -90,7 +92,7 @@ class KostController extends Controller
 
     public function show(Kost $kost)
     {
-        return $kost->load(['rooms.activeContract.user']);
+        return $kost->load(['rooms.activeContract.user'])->loadAvg('reviews', 'rating')->loadCount('reviews');
     }
 
     public function update(Request $request, Kost $kost)

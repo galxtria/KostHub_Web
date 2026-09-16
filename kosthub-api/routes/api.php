@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\KostController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
@@ -39,6 +40,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings', [ContractController::class, 'book']);
     Route::get('/my/contracts', [ContractController::class, 'mine']);
     Route::post('/contracts/{contract}/cancel', [ContractController::class, 'cancel']);
+
+    // Ulasan kost oleh penghuni (baca: semua role login; tulis/hapus: pemilik ulasan)
+    Route::get('/kosts/{kost}/reviews', [ReviewController::class, 'index']);
+    Route::post('/kosts/{kost}/reviews', [ReviewController::class, 'store']);
+    Route::delete('/reviews/{review}', [ReviewController::class, 'destroy']);
 
     // Payment gateway simulasi
     Route::post('/gateway/charge', [GatewayController::class, 'charge']);

@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, Star, BedDouble, DoorOpen, Check,
-  CalendarDays, ChevronRight, ScrollText, ExternalLink, Navigation,
+  CalendarDays, ChevronRight, ScrollText, ExternalLink, Navigation, Trash2, MessageSquareText,
 } from 'lucide-react';
 import api, { formatRupiah, imgSrc, priceShort } from '../api/axios';
 import { useToast } from '../components/ui/Toast';
 import { StatusBadge } from '../components/Layout';
 import { SkeletonCard } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
+import { useAuthStore } from '../store/useAuthStore';
 
 export default function KostDetailPage() {
   const { id } = useParams();
@@ -68,9 +69,15 @@ export default function KostDetailPage() {
 
   const rooms = kost.rooms || [];
   const kosongCount = rooms.filter((r) => r.status === 'kosong').length;
-  const rating = (4.5 + ((kost.id || 0) % 6) / 10).toFixed(1);
+  // Rating asli dari ulasan penghuni
+  const reviewCount = kost.reviews_count || 0;
+  const ratingAvg = kost.reviews_avg_rating != null ? Number(kost.reviews_avg_rating).toFixed(1) : null;
   const hargaMulai = rooms.length > 0 ? Math.min(...rooms.map((r) => Number(r.harga_bulanan))) : 0;
   const fasilitas = kost.fasilitas?.length > 0 ? kost.fasilitas : ['WiFi', 'Kasur Nyaman', 'KM Dalam'];
+
+  const reloadKost = () => {
+    api.get(`/kosts/${id}`).then((r) => setKost(r.data)).catch(() => {});
+  };
 
   // ===== Data lokasi untuk maps =====
   const lat = parseFloat(kost.latitude);
@@ -98,11 +105,15 @@ export default function KostDetailPage() {
       <div className="kost-card cursor-default">
         <div className="relative aspect-[16/9] md:aspect-[21/9] overflow-hidden bg-slate-100">
           <img src={imgSrc(kost.foto_url)} alt={kost.nama} className="w-full h-full object-cover" />
-          <div className="absolute top-3 right-3">
-            <span className="badge-rating">
-              <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
-              {rating}
-            </span>
+          <div className="absolute top-3 right-3 flex gap-2">
+            {ratingAvg ? (
+              <span className="badge-rating" title={`${reviewCount} ulasan`}>
+                <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+                {ratingAvg} <span className="font-semibold opacity-80">({reviewCount})</span>
+              </span>
+            ) : (
+              <span className="badge-rating !bg-slate-700">Belum ada ulasan</span>
+            )}
           </div>
           {kosongCount > 0 && (
             <div className="absolute bottom-3 left-3">
@@ -269,6 +280,9 @@ export default function KostDetailPage() {
         )}
       </section>
 
+      {/* Ulasan penghuni */}
+      <ReviewSection kostId={kost.id} reviewCount={reviewCount} ratingAvg={ratingAvg} onChanged={reloadKost} />
+
       {/* Modal booking */}
       {selectedRoom && (
         <div className="modal-overlay" onClick={() => setSelectedRoom(null)}>
@@ -309,5 +323,167 @@ export default function KostDetailPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/* ===== Section ulasan: daftar + tulis ulasan (1 per penghuni, bisa diubah) ===== */
+function ReviewSection({ kostId, reviewCount, ratingAvg, onChanged }) {
+  const toast = useToast();
+  const { user } = useAuthStore();
+  const [list, setList] = useState([]);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [loadingList, setLoadingList] = useState(true);
+  const [rating, setRating] = useState(5);
+  const [komentar, setKomentar] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [hoverStar, setHoverStar] = useState(0);
+
+  const load = (p = 1, append = false) => {
+    setLoadingList(true);
+    api.get(`/kosts/${kostId}/reviews`, { params: { page: p } })
+      .then((r) => {
+        setList((prev) => (append ? [...prev, ...r.data.data] : r.data.data));
+        setPage(r.data.current_page);
+        setLastPage(r.data.last_page);
+        // Prefill form bila user sudah pernah mengulas
+        const mine = (append ? [...list, ...r.data.data] : r.data.data).find((v) => v.user_id === user?.id);
+        if (mine && !append) {
+          setRating(mine.rating);
+          setKomentar(mine.komentar || '');
+        } else if (mine) {
+          setRating(mine.rating);
+          setKomentar(mine.komentar || '');
+        }
+      })
+      .catch(() => toast.error('Gagal memuat ulasan'))
+      .finally(() => setLoadingList(false));
+  };
+
+  useEffect(() => { load(); setRating(5); setKomentar(''); }, [kostId]);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.post(`/kosts/${kostId}/reviews`, { rating: Number(rating), komentar: komentar.trim() || null });
+      toast.success('Ulasan tersimpan. Terima kasih!');
+      load();
+      onChanged?.();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal menyimpan ulasan');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (reviewId) => {
+    try {
+      await api.delete(`/reviews/${reviewId}`);
+      toast.success('Ulasan dihapus');
+      // Reset form bila menghapus ulasan sendiri
+      const gone = list.find((v) => v.id === reviewId);
+      if (gone?.user_id === user?.id) { setRating(5); setKomentar(''); }
+      load();
+      onChanged?.();
+    } catch {
+      toast.error('Gagal menghapus ulasan');
+    }
+  };
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold font-heading text-slate-800 flex items-center gap-2">
+          <MessageSquareText className="w-5 h-5 text-kost-600" />
+          Ulasan Penghuni
+        </h2>
+        <span className="text-sm font-semibold text-kost-600 flex items-center gap-1.5">
+          {ratingAvg ? (
+            <>
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+              {ratingAvg} • {reviewCount} ulasan
+            </>
+          ) : (
+            <span className="text-slate-400 font-medium">Belum ada ulasan</span>
+          )}
+        </span>
+      </div>
+
+      {/* Form tulis ulasan */}
+      <form onSubmit={submit} className="card p-4 md:p-5 mb-4">
+        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Beri penilaian Anda</p>
+        <div className="flex items-center gap-1 mb-3">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <button
+              key={s} type="button"
+              onClick={() => setRating(s)}
+              onMouseEnter={() => setHoverStar(s)}
+              onMouseLeave={() => setHoverStar(0)}
+              className="p-1 transition-transform hover:scale-110"
+              title={`${s} bintang`}
+            >
+              <Star
+                className={`w-7 h-7 transition-colors ${
+                  s <= (hoverStar || rating) ? 'fill-amber-400 text-amber-400' : 'fill-slate-200 text-slate-200'
+                }`}
+              />
+            </button>
+          ))}
+          <span className="ml-2 text-sm font-bold text-slate-600">{rating}/5</span>
+        </div>
+        <textarea
+          className="input" rows={2}
+          placeholder="Ceritakan pengalaman Anda tinggal di sini... (opsional)"
+          value={komentar} onChange={(e) => setKomentar(e.target.value)} maxLength={1000}
+        />
+        <div className="flex justify-end mt-3">
+          <button type="submit" className="btn-primary text-sm" disabled={saving}>
+            {saving ? <><span className="spinner" /> Menyimpan...</> : 'Kirim Ulasan'}
+          </button>
+        </div>
+      </form>
+
+      {/* Daftar ulasan */}
+      {loadingList && list.length === 0 ? (
+        <SkeletonCard lines={2} />
+      ) : list.length === 0 ? (
+        <div className="card text-center py-8">
+          <p className="text-sm font-bold text-slate-700">Belum ada ulasan</p>
+          <p className="text-xs text-slate-400 mt-1">Jadilah yang pertama mengulas kost ini.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {list.map((v) => (
+            <div key={v.id} className="card !p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-bold text-slate-800">{v.user?.name || 'Penghuni'}</p>
+                  <p className="text-[11px] text-slate-400">{String(v.created_at || '').slice(0, 10)}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> {v.rating}/5
+                  </span>
+                  {v.user_id === user?.id && (
+                    <button type="button" onClick={() => remove(v.id)} className="btn-ghost !px-2 text-rose-500 hover:bg-rose-50" title="Hapus ulasan saya">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {v.komentar && <p className="text-sm text-slate-500 mt-2 leading-relaxed">{v.komentar}</p>}
+            </div>
+          ))}
+          {page < lastPage && (
+            <div className="flex justify-center pt-1">
+              <button type="button" onClick={() => load(page + 1, true)} disabled={loadingList} className="btn-secondary text-xs">
+                {loadingList ? 'Memuat...' : 'Muat ulasan lainnya'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
