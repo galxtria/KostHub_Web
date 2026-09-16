@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, Star, BedDouble, DoorOpen, Check,
-  CalendarDays, ChevronRight, ScrollText,
+  CalendarDays, ChevronRight, ScrollText, ExternalLink, Navigation,
 } from 'lucide-react';
 import api, { formatRupiah, imgSrc, priceShort } from '../api/axios';
 import { useToast } from '../components/ui/Toast';
@@ -71,6 +71,22 @@ export default function KostDetailPage() {
   const rating = (4.5 + ((kost.id || 0) % 6) / 10).toFixed(1);
   const hargaMulai = rooms.length > 0 ? Math.min(...rooms.map((r) => Number(r.harga_bulanan))) : 0;
   const fasilitas = kost.fasilitas?.length > 0 ? kost.fasilitas : ['WiFi', 'Kasur Nyaman', 'KM Dalam'];
+
+  // ===== Data lokasi untuk maps =====
+  const lat = parseFloat(kost.latitude);
+  const lng = parseFloat(kost.longitude);
+  const hasCoords = !Number.isNaN(lat) && !Number.isNaN(lng);
+  const fullAddress = [kost.alamat, kost.kota].filter(Boolean).join(', ');
+  const addressQuery = encodeURIComponent(fullAddress || kost.nama || '');
+  const mapEmbedSrc = hasCoords
+    ? `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.008}%2C${lat - 0.005}%2C${lng + 0.008}%2C${lat + 0.005}&layer=mapnik&marker=${lat}%2C${lng}`
+    : `https://maps.google.com/maps?q=${addressQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+  const googleMapsUrl = hasCoords
+    ? `https://www.google.com/maps?q=${lat},${lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${addressQuery}`;
+  const routeUrl = hasCoords
+    ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+    : googleMapsUrl;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -145,6 +161,63 @@ export default function KostDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Lokasi / Maps */}
+      <section className="kost-card cursor-default overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-5 md:p-6 pb-4">
+          <div>
+            <h2 className="text-lg font-bold font-heading text-slate-800 flex items-center gap-2">
+              <span className="w-9 h-9 rounded-xl bg-kost-50 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4 text-kost-700" />
+              </span>
+              Lokasi Kost
+            </h2>
+            <p className="text-sm text-slate-400 mt-1.5 ml-[44px] flex items-center gap-1.5">
+              <span className="truncate">{fullAddress || 'Alamat belum tersedia'}</span>
+            </p>
+          </div>
+          {hasCoords && (
+            <span className="ml-[44px] sm:ml-0 shrink-0 text-[11px] font-mono font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg w-fit">
+              {lat.toFixed(5)}, {lng.toFixed(5)}
+            </span>
+          )}
+        </div>
+        <div className="px-5 md:px-6">
+          <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
+            <iframe
+              title={`Peta lokasi ${kost.nama}`}
+              src={mapEmbedSrc}
+              className="w-full h-64 md:h-80 border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+            <div className="absolute bottom-3 left-3 right-3 sm:right-auto flex flex-col sm:flex-row gap-2">
+              <a
+                href={routeUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary text-xs py-2 shadow-soft-lg"
+              >
+                <Navigation className="w-3.5 h-3.5" /> Rute ke Sini
+              </a>
+              <a
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary text-xs py-2 bg-white/95 backdrop-blur"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Buka di Google Maps
+              </a>
+            </div>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-2.5 pb-5">
+            {hasCoords
+              ? 'Titik peta diambil dari koordinat yang diisi pemilik kost. Klik "Rute ke Sini" untuk navigasi.'
+              : 'Pemilik belum mengisi koordinat, peta ditampilkan berdasarkan alamat. Minta pemilik memperbarui titik lokasi agar lebih akurat.'}
+          </p>
+        </div>
+      </section>
 
       {/* Daftar kamar */}
       <section>

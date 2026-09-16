@@ -19,15 +19,42 @@ class KostController extends Controller
             ->when($request->search, fn($qq) => $qq->where(fn($w) => $w
                 ->where('nama', 'like', '%'.$request->search.'%')
                 ->orWhere('alamat', 'like', '%'.$request->search.'%')
-                ->orWhere('kota', 'like', '%'.$request->search.'%')));
+                ->orWhere('kota', 'like', '%'.$request->search.'%')))
+            ->when($request->kota, fn($qq) => $qq->where('kota', $request->kota))
+            ->when($request->boolean('tersedia'), fn($qq) => $qq->whereHas('rooms', fn($w) => $w->where('status', 'kosong')))
+            ->when(is_numeric($request->min_harga) || is_numeric($request->max_harga), function ($qq) use ($request) {
+                $qq->whereHas('rooms', function ($w) use ($request) {
+                    if (is_numeric($request->min_harga)) $w->where('harga_bulanan', '>=', (int) $request->min_harga);
+                    if (is_numeric($request->max_harga)) $w->where('harga_bulanan', '<=', (int) $request->max_harga);
+                });
+            });
+
+        $sort = $request->get('sort', 'terbaru');
 
         // Urutkan terdekat bila koordinat user dikirim (Haversine, km)
         if ($lat !== null && $lng !== null) {
             $haversine = '(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude))))';
-            $q->selectRaw("kosts.*, {$haversine} as distance_km", [$lat, $lng, $lat])
-                ->orderByRaw('ISNULL(distance_km), distance_km ASC');
+            $q->selectRaw("kosts.*, {$haversine} as distance_km", [$lat, $lng, $lat]);
+            if ($sort === 'termurah') {
+                $q->orderByRaw('rooms_min_harga_bulanan IS NULL, rooms_min_harga_bulanan ASC');
+            } elseif ($sort === 'termahal') {
+                $q->orderByDesc('rooms_min_harga_bulanan');
+            } else {
+                // terdekat (default bila ada koordinat) atau terbaru
+                if ($sort === 'terbaru') {
+                    $q->orderByDesc('kosts.created_at');
+                } else {
+                    $q->orderByRaw('ISNULL(distance_km), distance_km ASC');
+                }
+            }
         } else {
-            $q->latest();
+            if ($sort === 'termurah') {
+                $q->orderByRaw('rooms_min_harga_bulanan IS NULL, rooms_min_harga_bulanan ASC');
+            } elseif ($sort === 'termahal') {
+                $q->orderByDesc('rooms_min_harga_bulanan');
+            } else {
+                $q->latest();
+            }
         }
 
         return $q->paginate(10);

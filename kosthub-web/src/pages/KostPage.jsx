@@ -6,6 +6,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import { SkeletonCard } from '../components/ui/Skeleton';
+import MapPicker from '../components/MapPicker';
 
 const empty = { nama: '', alamat: '', kota: '', deskripsi: '', peraturan: '', latitude: '', longitude: '' };
 
@@ -37,6 +38,20 @@ export default function KostPage() {
 
   const submit = async (e) => {
     e.preventDefault();
+    const latRaw = String(form.latitude ?? '').trim();
+    const lngRaw = String(form.longitude ?? '').trim();
+    // Validasi pasangan koordinat agar titik valid & langsung muncul di maps detail
+    if ((latRaw && !lngRaw) || (!latRaw && lngRaw)) {
+      toast.error('Lengkapi latitude dan longitude, atau kosongkan keduanya.');
+      return;
+    }
+    const latNum = latRaw ? Number(latRaw) : null;
+    const lngNum = lngRaw ? Number(lngRaw) : null;
+    if ((latNum !== null && (Number.isNaN(latNum) || latNum < -90 || latNum > 90)) ||
+        (lngNum !== null && (Number.isNaN(lngNum) || lngNum < -180 || lngNum > 180))) {
+      toast.error('Koordinat tidak valid (latitude -90..90, longitude -180..180).');
+      return;
+    }
     setSaving(true);
     try {
       const fd = new FormData();
@@ -45,8 +60,13 @@ export default function KostPage() {
       fd.append('kota', form.kota || '');
       fd.append('deskripsi', form.deskripsi || '');
       fd.append('peraturan', form.peraturan || '');
-      if (form.latitude !== '' && form.latitude !== null) fd.append('latitude', form.latitude);
-      if (form.longitude !== '' && form.longitude !== null) fd.append('longitude', form.longitude);
+      if (latRaw) fd.append('latitude', latRaw);
+      if (lngRaw) fd.append('longitude', lngRaw);
+      // Saat edit + titik dihapus, kirim null eksplisit agar koordinat lama ikut terhapus
+      if (editId && !latRaw && !lngRaw) {
+        fd.append('latitude', '');
+        fd.append('longitude', '');
+      }
       if (fotoFile) fd.append('foto', fotoFile);
 
       if (editId) {
@@ -196,6 +216,9 @@ export default function KostPage() {
                       {k.kota}
                     </span>
                   )}
+                  <span className={`absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg ${k.latitude && k.longitude ? 'bg-emerald-500/90 text-white' : 'bg-amber-400/95 text-amber-950'}`}>
+                    {k.latitude && k.longitude ? 'Ada peta' : 'Belum ada titik'}
+                  </span>
                 </div>
                 <div className="p-5">
                 <div className="mb-3">
@@ -277,16 +300,30 @@ export default function KostPage() {
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Koordinat Lokasi</label>
-                  <button type="button" onClick={useMyLocation} className="inline-flex items-center gap-1 text-[11px] font-bold text-kost-700 hover:underline">
-                    <LocateFixed className="w-3.5 h-3.5" /> Lokasi saya
-                  </button>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Lokasi di Peta</label>
+                  <div className="flex items-center gap-2">
+                    {String(form.latitude ?? '').trim() && String(form.longitude ?? '').trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((p) => ({ ...p, latitude: '', longitude: '' }))}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:underline"
+                      >
+                        <X className="w-3.5 h-3.5" /> Hapus titik
+                      </button>
+                    )}
+                    <button type="button" onClick={useMyLocation} className="inline-flex items-center gap-1 text-[11px] font-bold text-kost-700 hover:underline">
+                      <LocateFixed className="w-3.5 h-3.5" /> Lokasi saya
+                    </button>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <input className="input" type="number" step="any" placeholder="Latitude, mis. -6.2607" value={form.latitude} onChange={(e) => set('latitude', e.target.value)} />
-                  <input className="input" type="number" step="any" placeholder="Longitude, mis. 106.8104" value={form.longitude} onChange={(e) => set('longitude', e.target.value)} />
-                </div>
-                <p className="text-xs text-slate-400 mt-1">Untuk fitur "kos terdekat" di aplikasi penghuni.</p>
+                <MapPicker
+                  latitude={form.latitude}
+                  longitude={form.longitude}
+                  onChange={(la, ln) => setForm((p) => ({ ...p, latitude: la, longitude: ln }))}
+                />
+                <p className="text-xs text-slate-400 mt-1.5">
+                  Klik peta untuk menaruh pin, atau pakai tombol "Lokasi saya".
+                </p>
               </div>
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Foto Kost (jpg/png/webp, maks 2MB)</label>

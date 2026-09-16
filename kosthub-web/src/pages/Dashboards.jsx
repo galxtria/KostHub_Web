@@ -24,6 +24,8 @@ import {
   ClipboardList,
   Search,
   LocateFixed,
+  SlidersHorizontal,
+  RotateCcw,
 } from 'lucide-react';
 
 /* ========== Admin Dashboard ========== */
@@ -164,18 +166,44 @@ export function UserDashboard() {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [coords, setCoords] = useState(null);
   const [locating, setLocating] = useState(false);
+  // ===== Filter & urutan =====
+  const [showFilter, setShowFilter] = useState(false);
+  const [sort, setSort] = useState('terbaru'); // terbaru | termurah | termahal | terdekat
+  const [minHarga, setMinHarga] = useState('');
+  const [maxHarga, setMaxHarga] = useState('');
+  const [debouncedMin, setDebouncedMin] = useState('');
+  const [debouncedMax, setDebouncedMax] = useState('');
+  const [kota, setKota] = useState('');
+  const [hanyaTersedia, setHanyaTersedia] = useState(false);
+  // ===== Batasi rekomendasi: 6 kartu, sisanya via "lihat selengkapnya" =====
+  const RECOMMENDATION_LIMIT = 6;
+  const [showAll, setShowAll] = useState(false);
 
-  // Debounce pencarian
+  // Debounce pencarian + harga
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 400);
     return () => clearTimeout(t);
   }, [query]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedMin(minHarga);
+      setDebouncedMax(maxHarga);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [minHarga, maxHarga]);
 
   useEffect(() => {
     setLoading(true);
     const params = {};
     if (debouncedQuery) params.search = debouncedQuery;
     if (coords) { params.lat = coords.lat; params.lng = coords.lng; }
+    if (debouncedMin !== '' && !Number.isNaN(Number(debouncedMin))) params.min_harga = Number(debouncedMin);
+    if (debouncedMax !== '' && !Number.isNaN(Number(debouncedMax))) params.max_harga = Number(debouncedMax);
+    if (kota) params.kota = kota;
+    if (hanyaTersedia) params.tersedia = 1;
+    if (sort && sort !== 'terbaru') params.sort = sort;
+    // Bila user pilih "terdekat" tapi lokasi belum aktif, tetap kirim agar backend tahu
+    if (sort === 'terdekat' && !coords) params.sort = 'terdekat';
     Promise.all([
       api.get('/kosts', { params }).then((r) => r.data.data || []).catch(() => []),
       api.get('/rooms', { params: { status: 'kosong' } }).then((r) => r.data.data || []).catch(() => []),
@@ -183,7 +211,12 @@ export function UserDashboard() {
     ])
       .then(([k, rm, c]) => { setKosts(k); setRooms(rm); setContract(c); })
       .finally(() => setLoading(false));
-  }, [debouncedQuery, coords]);
+  }, [debouncedQuery, coords, debouncedMin, debouncedMax, kota, hanyaTersedia, sort]);
+
+  // Kembali ke 6 kartu setiap kriteria pencarian / filter berubah
+  useEffect(() => {
+    setShowAll(false);
+  }, [debouncedQuery, debouncedMin, debouncedMax, kota, hanyaTersedia, sort]);
 
   const openKost = (id) => nav(`/kost/${id}`);
 
@@ -207,6 +240,77 @@ export function UserDashboard() {
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
+
+  // Pilih "Terdekat dari Saya" otomatis meminta lokasi — tidak perlu tombol lokasi terpisah
+  useEffect(() => {
+    if (sort === 'terdekat' && !coords && !locating) requestLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort]);
+
+  const resetFilter = () => {
+    setSort('terbaru');
+    setMinHarga('');
+    setMaxHarga('');
+    setKota('');
+    setHanyaTersedia(false);
+    setCoords(null);
+    setCustomPriceOpen(false);
+  };
+
+  // Opsi kota dari data yang ada (fallback client)
+  const kotaOptions = [...new Set(kosts.map((k) => k.kota).filter(Boolean))].sort();
+  if (kota && !kotaOptions.includes(kota)) kotaOptions.push(kota);
+
+  // Harga = satu filter (preset atau kustom), dihitung sekali
+  const [customPriceOpen, setCustomPriceOpen] = useState(false);
+  const pricePreset = (() => {
+    const lo = minHarga.trim();
+    const hi = maxHarga.trim();
+    if (!lo && !hi) return 'all';
+    if (!lo && hi === '1000000') return 'lt1';
+    if (lo === '1000000' && hi === '2000000') return '1to2';
+    if (lo === '2000000' && !hi) return 'gt2';
+    return 'custom';
+  })();
+  const priceActive = debouncedMin !== '' || debouncedMax !== '';
+
+  const activeFilterCount =
+    (sort !== 'terbaru' ? 1 : 0) +
+    (priceActive ? 1 : 0) +
+    (kota ? 1 : 0) +
+    (hanyaTersedia ? 1 : 0);
+
+  // Fallback client-side: saring + urutkan hasil API agar konsisten
+  const displayKosts = (() => {
+    let out = [...kosts];
+    const lo = debouncedMin !== '' ? Number(debouncedMin) : null;
+    const hi = debouncedMax !== '' ? Number(debouncedMax) : null;
+    if (lo !== null && !Number.isNaN(lo)) out = out.filter((k) => Number(k.rooms_min_harga_bulanan || 0) >= lo);
+    if (hi !== null && !Number.isNaN(hi)) out = out.filter((k) => Number(k.rooms_min_harga_bulanan || 0) <= hi);
+    if (hanyaTersedia) out = out.filter((k) => (k.rooms_count || 0) - (k.rooms_terisi_count || 0) > 0);
+    if (sort === 'termurah') out.sort((a, b) => Number(a.rooms_min_harga_bulanan || Infinity) - Number(b.rooms_min_harga_bulanan || Infinity));
+    else if (sort === 'termahal') out.sort((a, b) => Number(b.rooms_min_harga_bulanan || 0) - Number(a.rooms_min_harga_bulanan || 0));
+    else if (sort === 'terdekat') out.sort((a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity));
+    return out;
+  })();
+
+  const visibleKosts = showAll ? displayKosts : displayKosts.slice(0, RECOMMENDATION_LIMIT);
+  const hiddenCount = displayKosts.length - visibleKosts.length;
+
+  const applyPreset = (preset) => {
+    if (preset === 'all') { setMinHarga(''); setMaxHarga(''); }
+    else if (preset === 'lt1') { setMinHarga(''); setMaxHarga('1000000'); }
+    else if (preset === '1to2') { setMinHarga('1000000'); setMaxHarga('2000000'); }
+    else if (preset === 'gt2') { setMinHarga('2000000'); setMaxHarga(''); }
+    setCustomPriceOpen(preset === 'custom');
+  };
+  const PRICE_PRESETS = [
+    { key: 'all', label: 'Semua' },
+    { key: 'lt1', label: '< Rp 1jt' },
+    { key: '1to2', label: 'Rp 1–2jt' },
+    { key: 'gt2', label: '> Rp 2jt' },
+    { key: 'custom', label: 'Kustom' },
+  ];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -256,15 +360,111 @@ export function UserDashboard() {
             )}
           </div>
           <button
-            onClick={requestLocation}
-            disabled={locating}
-            className={coords ? 'btn-primary whitespace-nowrap' : 'btn-secondary whitespace-nowrap'}
-            title={coords ? 'Matikan lokasi' : 'Tampilkan kos terdekat dari lokasi saya'}
+            onClick={() => setShowFilter((v) => !v)}
+            className={`relative whitespace-nowrap ${showFilter || activeFilterCount > 0 ? 'btn-primary' : 'btn-secondary'}`}
+            title="Filter & urutan pencarian"
           >
-            <LocateFixed className="w-4 h-4" />
-            {locating ? 'Mencari lokasi...' : coords ? 'Terdekat: Aktif' : 'Terdekat'}
+            <SlidersHorizontal className="w-4 h-4" />
+            Filter
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
           </button>
         </div>
+
+        {/* ===== Panel filter ===== */}
+        {showFilter && (
+          <div className="mt-3 pt-3 border-t border-slate-100 animate-fade-in">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Urutkan</label>
+                <select className="input" value={sort} onChange={(e) => setSort(e.target.value)}>
+                  <option value="terbaru">Rekomendasi / Terbaru</option>
+                  <option value="termurah">Harga Terendah</option>
+                  <option value="termahal">Harga Tertinggi</option>
+                  <option value="terdekat">Terdekat dari Saya</option>
+                </select>
+                {sort === 'terdekat' && (
+                  <p className="text-[11px] font-semibold mt-1.5 flex items-center gap-1.5">
+                    <LocateFixed className="w-3.5 h-3.5 text-kost-600 shrink-0" />
+                    {locating ? (
+                      <span className="text-slate-400">Mencari lokasi...</span>
+                    ) : coords ? (
+                      <span className="text-emerald-600">
+                        Lokasi aktif.{' '}
+                        <button type="button" onClick={() => setCoords(null)} className="font-bold underline hover:no-underline">
+                          Matikan
+                        </button>
+                      </span>
+                    ) : (
+                      <span className="text-amber-600">Izin lokasi ditolak — daftar diurutkan biasa.</span>
+                    )}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Kota</label>
+                <select className="input" value={kota} onChange={(e) => setKota(e.target.value)}>
+                  <option value="">Semua Kota</option>
+                  {kotaOptions.map((k) => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Harga per bulan — satu kontrol */}
+            <div className="mt-3">
+              <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Harga per bulan</label>
+              <div className="flex flex-wrap gap-2">
+                {PRICE_PRESETS.map((p) => (
+                  <button
+                    key={p.key} type="button" onClick={() => applyPreset(p.key)}
+                    className={`text-xs font-semibold px-3.5 py-2 rounded-xl border transition-colors ${
+                      pricePreset === p.key
+                        ? 'bg-kost-700 border-kost-700 text-white shadow-soft'
+                        : 'border-slate-200 text-slate-600 hover:border-kost-400 hover:text-kost-700 hover:bg-kost-50/50'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {(customPriceOpen || pricePreset === 'custom') && (
+                <div className="grid grid-cols-2 gap-3 mt-2.5">
+                  <input
+                    type="number" min="0" step="50000" className="input"
+                    placeholder="Min, cth. 500000"
+                    value={minHarga} onChange={(e) => setMinHarga(e.target.value)}
+                  />
+                  <input
+                    type="number" min="0" step="50000" className="input"
+                    placeholder="Max, cth. 2000000"
+                    value={maxHarga} onChange={(e) => setMaxHarga(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 mt-3.5 pt-3 border-t border-slate-100">
+              <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer select-none">
+                <input
+                  type="checkbox" checked={hanyaTersedia}
+                  onChange={(e) => setHanyaTersedia(e.target.checked)}
+                  className="w-4 h-4 rounded accent-teal-700"
+                />
+                Hanya yang ada kamar kosong
+              </label>
+              {activeFilterCount > 0 && (
+                <button type="button" onClick={resetFilter} className="ml-auto inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:underline">
+                  <RotateCcw className="w-3.5 h-3.5" /> Reset filter
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ===== Section: Rekomendasi / Hasil Cari ===== */}
@@ -274,7 +474,7 @@ export function UserDashboard() {
             {debouncedQuery ? `Hasil "${debouncedQuery}"` : 'Rekomendasi'}
           </h2>
           <span className="text-sm font-semibold text-kost-600 flex items-center gap-1">
-            {kosts.length} properti
+            {displayKosts.length} properti
             <ChevronRight className="w-4 h-4" />
           </span>
         </div>
@@ -288,62 +488,43 @@ export function UserDashboard() {
               {[...Array(6)].map((_, i) => <SkeletonCard key={i} lines={3} />)}
             </div>
           </>
-        ) : kosts.length === 0 ? (
+        ) : displayKosts.length === 0 ? (
           <EmptyState
-            title={debouncedQuery ? 'Tidak ditemukan' : 'Belum ada kost'}
-            message={debouncedQuery ? `Tidak ada kost yang cocok dengan "${debouncedQuery}".` : 'Properti kost akan muncul di sini setelah admin menambahkannya.'}
+            title={debouncedQuery || activeFilterCount > 0 ? 'Tidak ditemukan' : 'Belum ada kost'}
+            message={debouncedQuery || activeFilterCount > 0 ? `Tidak ada kost yang cocok dengan pencarian / filter saat ini.` : 'Properti kost akan muncul di sini setelah admin menambahkannya.'}
+            action={activeFilterCount > 0 ? resetFilter : undefined}
+            actionLabel="Reset Filter"
           />
         ) : (
           <>
             {/* Mobile scroll */}
             <div className="md:hidden scroll-snap-x -mx-5 px-5">
-              {kosts.map((kost, idx) => (
+              {visibleKosts.map((kost, idx) => (
                 <RecommendationCard key={kost.id} kost={kost} index={idx} onOpen={() => openKost(kost.id)} />
               ))}
             </div>
             {/* Desktop grid */}
             <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {kosts.map((kost, idx) => (
+              {visibleKosts.map((kost, idx) => (
                 <RecommendationCard key={kost.id} kost={kost} index={idx} onOpen={() => openKost(kost.id)} />
               ))}
             </div>
+            {/* Lihat selengkapnya / ciutkan */}
+            {(hiddenCount > 0 || showAll) && (
+              <div className="flex justify-center mt-5">
+                {hiddenCount > 0 ? (
+                  <button onClick={() => setShowAll(true)} className="btn-secondary text-sm">
+                    Lihat {displayKosts.length} properti selengkapnya
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button onClick={() => setShowAll(false)} className="btn-ghost text-kost-700 font-semibold text-sm">
+                    Tampilkan lebih sedikit
+                  </button>
+                )}
+              </div>
+            )}
           </>
-        )}
-      </section>
-
-      {/* ===== Section: Terdekat dari Anda ===== */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold font-heading text-slate-800">Terdekat dari Anda</h2>
-          {!coords && (
-            <button onClick={requestLocation} className="text-sm font-semibold text-kost-600 hover:text-kost-700 transition-colors flex items-center gap-1">
-              <LocateFixed className="w-4 h-4" />
-              Aktifkan lokasi
-            </button>
-          )}
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
-          </div>
-        ) : !coords ? (
-          <div className="card text-center py-8">
-            <div className="mx-auto w-12 h-12 rounded-2xl bg-kost-50 flex items-center justify-center mb-3">
-              <LocateFixed className="w-6 h-6 text-kost-600" />
-            </div>
-            <p className="text-sm font-bold text-slate-700">Lihat kos terdekat dari posisi Anda</p>
-            <p className="text-xs text-slate-400 mt-1 mb-4">Aktifkan izin lokasi, kami urutkan dari yang paling dekat.</p>
-            <button onClick={requestLocation} disabled={locating} className="btn-primary text-xs">
-              <LocateFixed className="w-3.5 h-3.5" /> {locating ? 'Mencari lokasi...' : 'Gunakan Lokasi Saya'}
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {kosts.filter((k) => k.distance_km !== null && k.distance_km !== undefined).slice(0, 4).map((kost, idx) => (
-              <NearbyKostCard key={kost.id} kost={kost} index={idx} onOpen={() => openKost(kost.id)} />
-            ))}
-          </div>
         )}
       </section>
 
@@ -461,54 +642,6 @@ function RecommendationCard({ kost, index, onOpen }) {
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ===== Nearby Kost Card (dengan jarak, klik -> detail) ===== */
-function NearbyKostCard({ kost, index, onOpen }) {
-  const kosong = (kost.rooms_count || 0) - (kost.rooms_terisi_count || 0);
-  return (
-    <div
-      className="kost-card-mini animate-slide-up"
-      style={{ animationDelay: `${index * 60}ms` }}
-      onClick={onOpen}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter') onOpen?.(); }}
-    >
-      <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100">
-        <img
-          src={imgSrc(kost.foto_url, `/images/kost/kost-${(index % 4) + 1}.jpg`)}
-          alt={kost.nama}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
-      </div>
-      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-        <div>
-          <h4 className="font-semibold text-slate-800 text-sm leading-snug truncate">{kost.nama}</h4>
-          <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
-            <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{[kost.alamat, kost.kota].filter(Boolean).join(', ')}</span>
-          </p>
-        </div>
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-kost-700 bg-kost-50 px-2 py-0.5 rounded-lg">
-            <LocateFixed className="w-3 h-3" />
-            {formatDistance(kost.distance_km)}
-          </span>
-          <div className="text-right">
-            <span className="text-sm font-bold text-kost-700">
-              {kost.rooms_min_harga_bulanan ? priceShort(kost.rooms_min_harga_bulanan) : '-'}
-            </span>
-            <span className="text-[10px] text-slate-400 ml-0.5">/ bln</span>
-          </div>
-        </div>
-      </div>
-      {kosong <= 0 && (
-        <span className="badge badge-kosong self-start shrink-0">Penuh</span>
-      )}
     </div>
   );
 }

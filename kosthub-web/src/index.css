@@ -325,8 +325,9 @@
     @apply fixed inset-0 z-50
            bg-slate-900/40
            backdrop-blur-sm
-           flex items-center justify-center
+           flex justify-center
            p-4
+           overflow-y-auto
            animate-fade-in;
   }
 
@@ -335,6 +336,10 @@
            border border-slate-100
            rounded-2xl
            w-full max-w-lg
+           h-fit
+           m-auto
+           max-h-[92vh]
+           overflow-y-auto
            p-6
            shadow-soft-lg
            animate-scale-in;
