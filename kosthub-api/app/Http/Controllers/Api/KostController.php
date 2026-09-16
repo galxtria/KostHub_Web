@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Kost;
+use App\Support\Fasilitas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -78,6 +79,7 @@ class KostController extends Controller
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'fasilitas' => 'nullable|array',
+            'fasilitas.*' => 'string|in:'.implode(',', Fasilitas::KOST),
             'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
         $data['owner_id'] = $request->user()->id;
@@ -106,6 +108,7 @@ class KostController extends Controller
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'fasilitas' => 'nullable|array',
+            'fasilitas.*' => 'string|in:'.implode(',', Fasilitas::KOST),
             'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 

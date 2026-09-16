@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Room;
+use App\Support\Fasilitas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -31,6 +32,7 @@ class RoomController extends Controller
             'harga_bulanan' => 'required|numeric|min:0',
             'status' => 'nullable|in:kosong,terisi,maintenance',
             'fasilitas' => 'nullable|array',
+            'fasilitas.*' => 'string|in:'.implode(',', Fasilitas::KAMAR),
             'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
@@ -50,6 +52,7 @@ class RoomController extends Controller
             'harga_bulanan' => 'sometimes|numeric|min:0',
             'status' => 'sometimes|in:kosong,terisi,maintenance',
             'fasilitas' => 'nullable|array',
+            'fasilitas.*' => 'string|in:'.implode(',', Fasilitas::KAMAR),
             'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 

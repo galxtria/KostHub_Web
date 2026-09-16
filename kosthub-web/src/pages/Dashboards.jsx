@@ -600,7 +600,7 @@ function RecommendationCard({ kost, index, onOpen }) {
   const ratingAvg = kost.reviews_avg_rating != null ? Number(kost.reviews_avg_rating).toFixed(1) : null;
   const facilities = (kost.fasilitas && kost.fasilitas.length > 0
     ? kost.fasilitas.slice(0, 3)
-    : ['WiFi', 'Kasur Nyaman', 'KM Dalam']
+    : ['WiFi', 'Kasur', 'KM Dalam']
   ).map((label, i) => ({ icon: FACILITY_ICONS[i % FACILITY_ICONS.length], label }));
 
   return (

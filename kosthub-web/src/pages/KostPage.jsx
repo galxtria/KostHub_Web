@@ -7,8 +7,9 @@ import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import { SkeletonCard } from '../components/ui/Skeleton';
 import MapPicker from '../components/MapPicker';
+import { FASILITAS_KOST } from '../store/fasilitas';
 
-const empty = { nama: '', alamat: '', kota: '', deskripsi: '', peraturan: '', latitude: '', longitude: '' };
+const empty = { nama: '', alamat: '', kota: '', deskripsi: '', peraturan: '', latitude: '', longitude: '', fasilitas: [] };
 
 export default function KostPage() {
   const [list, setList] = useState([]);
@@ -60,6 +61,7 @@ export default function KostPage() {
       fd.append('kota', form.kota || '');
       fd.append('deskripsi', form.deskripsi || '');
       fd.append('peraturan', form.peraturan || '');
+      (form.fasilitas || []).forEach((f, i) => fd.append(`fasilitas[${i}]`, f));
       if (latRaw) fd.append('latitude', latRaw);
       if (lngRaw) fd.append('longitude', lngRaw);
       // Saat edit + titik dihapus, kirim null eksplisit agar koordinat lama ikut terhapus
@@ -119,7 +121,7 @@ export default function KostPage() {
   };
 
   const openEdit = (k) => {
-    setForm({ nama: k.nama, alamat: k.alamat, kota: k.kota || '', deskripsi: k.deskripsi || '', peraturan: k.peraturan || '', latitude: k.latitude || '', longitude: k.longitude || '' });
+    setForm({ nama: k.nama, alamat: k.alamat, kota: k.kota || '', deskripsi: k.deskripsi || '', peraturan: k.peraturan || '', latitude: k.latitude || '', longitude: k.longitude || '', fasilitas: k.fasilitas || [] });
     setEditId(k.id);
     setFotoFile(null);
     const server = k.foto_url ? imgSrc(k.foto_url) : null;
@@ -154,6 +156,11 @@ export default function KostPage() {
     : list;
 
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
+
+  const toggleFas = (f) => setForm((prev) => {
+    const cur = prev.fasilitas || [];
+    return { ...prev, fasilitas: cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f] };
+  });
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -297,6 +304,25 @@ export default function KostPage() {
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Peraturan</label>
                 <textarea className="input" placeholder="Peraturan kost..." value={form.peraturan} onChange={(e) => set('peraturan', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
+                  Fasilitas Kost {(form.fasilitas || []).length > 0 && <span className="text-kost-600">({form.fasilitas.length} dipilih)</span>}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {FASILITAS_KOST.map((f) => (
+                    <button
+                      key={f} type="button" onClick={() => toggleFas(f)}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                        (form.fasilitas || []).includes(f)
+                          ? 'bg-kost-700 border-kost-700 text-white'
+                          : 'border-slate-200 text-slate-500 hover:border-kost-400 hover:text-kost-700'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1.5">

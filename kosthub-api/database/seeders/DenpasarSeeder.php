@@ -26,7 +26,7 @@ class DenpasarSeeder extends Seeder
                 'peraturan' => '1. Tamu maksimal sampai jam 22.00. 2. Dilarang membawa hewan peliharaan. 3. Jaga kebersihan area bersama.',
                 'latitude' => -8.6720,
                 'longitude' => 115.2340,
-                'fasilitas' => ['wifi', 'parkir', 'cctv', 'dapur', 'laundry'],
+                'fasilitas' => ['WiFi', 'Parkir Motor', 'CCTV', 'Dapur Bersama', 'Laundry'],
                 'rooms' => [
                     ['A1', 'exclusive', 1800000],
                     ['A2', 'exclusive', 1600000],
@@ -42,7 +42,7 @@ class DenpasarSeeder extends Seeder
                 'peraturan' => '1. Dilarang merokok di dalam kamar. 2. Tamu lapor ke penjaga kost.',
                 'latitude' => -8.7790,
                 'longitude' => 115.1690,
-                'fasilitas' => ['wifi', 'parkir', 'cctv', 'dapur bersama'],
+                'fasilitas' => ['WiFi', 'Parkir Motor', 'CCTV', 'Dapur Bersama'],
                 'rooms' => [
                     ['A1', 'exclusive', 2000000],
                     ['A2', 'standar', 1300000],
@@ -57,7 +57,7 @@ class DenpasarSeeder extends Seeder
                 'peraturan' => '1. Jam malam jam 23.00. 2. Dilarang mengadakan acara tanpa izin.',
                 'latitude' => -8.6980,
                 'longitude' => 115.2620,
-                'fasilitas' => ['wifi', 'ac', 'parkir', 'cctv', 'rooftop', 'dapur'],
+                'fasilitas' => ['WiFi', 'AC', 'Parkir Motor', 'CCTV', 'Rooftop', 'Dapur Bersama'],
                 'rooms' => [
                     ['A1', 'exclusive', 2200000],
                     ['A2', 'exclusive', 1900000],
@@ -73,7 +73,7 @@ class DenpasarSeeder extends Seeder
                 'peraturan' => '1. Bayar kos maksimal tanggal 5. 2. Jaga ketertiban dan kebersihan.',
                 'latitude' => -8.6560,
                 'longitude' => 115.2160,
-                'fasilitas' => ['wifi', 'parkir motor', 'cctv', 'dapur'],
+                'fasilitas' => ['WiFi', 'Parkir Motor', 'CCTV', 'Dapur Bersama'],
                 'rooms' => [
                     ['A1', 'standar', 1100000],
                     ['A2', 'standar', 1000000],
@@ -88,7 +88,7 @@ class DenpasarSeeder extends Seeder
                 'peraturan' => '1. Tamu maksimal sampai jam 22.00. 2. Dilarang membawa hewan peliharaan.',
                 'latitude' => -8.7020,
                 'longitude' => 115.2080,
-                'fasilitas' => ['wifi', 'parkir', 'cctv', 'dapur', 'ruang santai'],
+                'fasilitas' => ['WiFi', 'Parkir Motor', 'CCTV', 'Dapur Bersama', 'Ruang Santai'],
                 'rooms' => [
                     ['A1', 'exclusive', 1700000],
                     ['A2', 'standar', 1150000],
@@ -103,7 +103,7 @@ class DenpasarSeeder extends Seeder
                 'peraturan' => '1. Bayar kos maksimal tanggal 5. 2. Tamu lapor ke penjaga kost.',
                 'latitude' => -8.6480,
                 'longitude' => 115.1980,
-                'fasilitas' => ['wifi', 'parkir', 'cctv', 'dapur bersama'],
+                'fasilitas' => ['WiFi', 'Parkir Motor', 'CCTV', 'Dapur Bersama'],
                 'rooms' => [
                     ['A1', 'standar', 1050000],
                     ['A2', 'standar', 950000],
@@ -118,7 +118,7 @@ class DenpasarSeeder extends Seeder
                 'peraturan' => '1. Dilarang merokok di dalam kamar. 2. Jam malam jam 23.00.',
                 'latitude' => -8.6780,
                 'longitude' => 115.2080,
-                'fasilitas' => ['wifi', 'ac', 'parkir', 'cctv', 'laundry'],
+                'fasilitas' => ['WiFi', 'AC', 'Parkir Motor', 'CCTV', 'Laundry'],
                 'rooms' => [
                     ['A1', 'exclusive', 2100000],
                     ['A2', 'exclusive', 1850000],
@@ -133,7 +133,7 @@ class DenpasarSeeder extends Seeder
                 'peraturan' => '1. Jaga ketenangan setelah jam 22.00. 2. Dilarang mengadakan acara tanpa izin.',
                 'latitude' => -8.6680,
                 'longitude' => 115.2540,
-                'fasilitas' => ['wifi', 'parkir motor', 'cctv', 'taman', 'dapur'],
+                'fasilitas' => ['WiFi', 'Parkir Motor', 'CCTV', 'Taman', 'Dapur Bersama'],
                 'rooms' => [
                     ['A1', 'standar', 1200000],
                     ['A2', 'standar', 1100000],
@@ -149,7 +149,7 @@ class DenpasarSeeder extends Seeder
                 'peraturan' => '1. Bayar kos maksimal tanggal 5. 2. Jaga ketertiban dan kebersihan.',
                 'latitude' => -8.6900,
                 'longitude' => 115.1900,
-                'fasilitas' => ['wifi', 'parkir', 'cctv', 'dapur', 'air panas'],
+                'fasilitas' => ['WiFi', 'Parkir Motor', 'CCTV', 'Dapur Bersama', 'Air Panas'],
                 'rooms' => [
                     ['A1', 'exclusive', 1900000],
                     ['A2', 'standar', 1300000],
@@ -181,8 +181,8 @@ class DenpasarSeeder extends Seeder
                         'harga_bulanan' => $harga,
                         'status' => 'kosong',
                         'fasilitas' => $tipe === 'exclusive'
-                            ? ['ac', 'kamar mandi dalam', 'lemari', 'meja belajar']
-                            : ['kipas angin', 'kasur', 'lemari'],
+                            ? ['AC', 'KM Dalam', 'Lemari', 'Meja Belajar']
+                            : ['Kipas Angin', 'Kasur', 'Lemari'],
                     ]
                 );
             }

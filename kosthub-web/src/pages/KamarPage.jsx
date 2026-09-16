@@ -7,8 +7,9 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import { SkeletonCard } from '../components/ui/Skeleton';
+import { FASILITAS_KAMAR } from '../store/fasilitas';
 
-const emptyForm = { kost_id: '', nomor_kamar: '', tipe: 'standar', harga_bulanan: '', status: 'kosong', fasilitas: '' };
+const emptyForm = { kost_id: '', nomor_kamar: '', tipe: 'standar', harga_bulanan: '', status: 'kosong', fasilitas: [] };
 
 export default function KamarPage() {
   const [rooms, setRooms] = useState([]);
@@ -71,7 +72,7 @@ export default function KamarPage() {
       tipe: room.tipe,
       harga_bulanan: room.harga_bulanan,
       status: room.status,
-      fasilitas: (room.fasilitas || []).join(', '),
+      fasilitas: room.fasilitas || [],
     });
     setEditId(room.id);
     setFotoFile(null);
@@ -92,7 +93,7 @@ export default function KamarPage() {
       fd.append('harga_bulanan', form.harga_bulanan);
       fd.append('status', form.status);
       // Kirim fasilitas sebagai array indexed agar validasi array Laravel lolos
-      const fasList = form.fasilitas ? form.fasilitas.split(',').map((f) => f.trim()).filter(Boolean) : [];
+      const fasList = Array.isArray(form.fasilitas) ? form.fasilitas : [];
       fasList.forEach((f, i) => fd.append(`fasilitas[${i}]`, f));
       if (fotoFile) fd.append('foto', fotoFile);
 
@@ -282,9 +283,27 @@ export default function KamarPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Fasilitas</label>
-                <input className="input" placeholder="AC, WiFi, Kamar Mandi Dalam" value={form.fasilitas} onChange={(e) => set('fasilitas', e.target.value)} />
-                <p className="text-xs text-slate-400 mt-1">Pisahkan dengan koma</p>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
+                  Fasilitas {(form.fasilitas || []).length > 0 && <span className="text-kost-600">({form.fasilitas.length} dipilih)</span>}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {FASILITAS_KAMAR.map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => set('fasilitas', (form.fasilitas || []).includes(f)
+                        ? form.fasilitas.filter((x) => x !== f)
+                        : [...(form.fasilitas || []), f])}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                        (form.fasilitas || []).includes(f)
+                          ? 'bg-kost-700 border-kost-700 text-white'
+                          : 'border-slate-200 text-slate-500 hover:border-kost-400 hover:text-kost-700'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>

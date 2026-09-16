@@ -73,7 +73,7 @@ export default function KostDetailPage() {
   const reviewCount = kost.reviews_count || 0;
   const ratingAvg = kost.reviews_avg_rating != null ? Number(kost.reviews_avg_rating).toFixed(1) : null;
   const hargaMulai = rooms.length > 0 ? Math.min(...rooms.map((r) => Number(r.harga_bulanan))) : 0;
-  const fasilitas = kost.fasilitas?.length > 0 ? kost.fasilitas : ['WiFi', 'Kasur Nyaman', 'KM Dalam'];
+  const fasilitas = kost.fasilitas?.length > 0 ? kost.fasilitas : ['WiFi', 'Kasur', 'KM Dalam'];
 
   const reloadKost = () => {
     api.get(`/kosts/${id}`).then((r) => setKost(r.data)).catch(() => {});

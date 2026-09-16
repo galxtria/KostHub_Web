@@ -25,13 +25,13 @@ class DemoSeeder extends Seeder
 
         $kost = Kost::firstOrCreate(
             ['nama' => 'KostHub Mawar Jakarta'],
-            ['owner_id' => $admin->id, 'alamat' => 'Jl. Mawar No. 10, Jakarta Selatan', 'kota' => 'Jakarta', 'deskripsi' => 'Kost eksklusif dekat kampus', 'peraturan' => '1. Tamu maks jam 22.00. 2. Dilarang membawa hewan.', 'latitude' => -6.2607, 'longitude' => 106.8104, 'fasilitas' => ['wifi','parkir','cctv','dapur']]
+            ['owner_id' => $admin->id, 'alamat' => 'Jl. Mawar No. 10, Jakarta Selatan', 'kota' => 'Jakarta', 'deskripsi' => 'Kost eksklusif dekat kampus', 'peraturan' => '1. Tamu maks jam 22.00. 2. Dilarang membawa hewan.', 'latitude' => -6.2607, 'longitude' => 106.8104, 'fasilitas' => ['WiFi','Parkir Motor','CCTV','Dapur Bersama']]
         );
 
         foreach (['A1','A2','A3','B1','B2'] as $i => $nomor) {
             Room::firstOrCreate(
                 ['kost_id' => $kost->id, 'nomor_kamar' => $nomor],
-                ['tipe' => $i < 3 ? 'exclusive' : 'standar', 'harga_bulanan' => $i < 3 ? 1500000 : 1000000, 'status' => 'kosong', 'fasilitas' => ['ac','kamar mandi dalam','lemari']]
+                ['tipe' => $i < 3 ? 'exclusive' : 'standar', 'harga_bulanan' => $i < 3 ? 1500000 : 1000000, 'status' => 'kosong', 'fasilitas' => ['AC','KM Dalam','Lemari']]
             );
         }
 
